@@ -44,6 +44,7 @@ def dingmessage():
         print(k.devicesId)
         devices = DbData.search_tab_by_id_devices(k.devicesId)
         config = DbData.search_tab_conf_by_devices(devices.configId)
+        # 查询平台类型使消息容易查看
         platformType = ""
         if int(config.platformType) == 1 :
             platformType = "消防平台"
