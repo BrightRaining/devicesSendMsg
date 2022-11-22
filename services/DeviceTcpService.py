@@ -1,9 +1,8 @@
 #-*- coding:UTF-8 -*-
-
+import datetime
 import logging
 import re
 import time
-from datetime import datetime
 
 from db import DbData
 from db.Elements import DevicesLog
@@ -14,9 +13,11 @@ import requests
 
 # 发送报警信息且检查设备状态和通讯时间
 def alarmCheck(devices, targetSession):
-    print("报警设备：" + str(devices.devicesId))
+    logging.info("报警设备：" + str(devices.devicesId))
+    # 当前时间戳
     nowTimestamp = int(time.mktime(time.localtime(time.time())))
-    logging.info("当前时间：" + str(time.time()))
+    logging.info("nowTime：" + str(nowTimestamp))
+
     try:
         tcp_utils(devices.conProfix, devices.conPort, devices.alarm)
         time.sleep(5)
@@ -29,21 +30,15 @@ def alarmCheck(devices, targetSession):
         devLog.describe = "tcp链接失败，请检查！"
         DbData.insert_devices_log_time(devLog)
         return
-    # 当前时间戳
-    t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(nowTimestamp))
-    nowTime = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
-    print("nowTime：" + str(nowTime))
+
     req = requests.get(devices.devicesStatusLink, cookies={'SESSION': targetSession})
     resText = req.text
-
     logTime = devices.searchTimeField
     result = re.search(logTime + '\D:[0-9]*', resText)
     targetTimeStamp = result.group()
-    r = str(targetTimeStamp.split(":")[1])
-    sf = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(r)))
-    targetTime = datetime.strptime(sf, "%Y-%m-%d %H:%M:%S")
-    print("targetTime" + str(targetTime))
-    result = (nowTime - targetTime).seconds
+    targetTime = str(targetTimeStamp.split(":")[1])
+    tarResult = dataTimeDifference(nowTimestamp,targetTime)
+
     print("描述：" + str(result))
     if resText.find("报警") <= 0:
         result = None
@@ -58,9 +53,18 @@ def alarmCheck(devices, targetSession):
             devLog.result = False
             devLog.describe = "报警数据上报后设备状态中未查到报警信息，请检查！"
             DbData.insert_devices_log_time(devLog)
-
             return
-    elif result > int(devices.checkTime):
+        elif int(tarResult) > int(devices.checkTime):
+            print("最后通讯时间已超过规定时间，请检查！")
+            devLog = DevicesLog()
+            devLog.executeLog = devices.alarm
+            devLog.devicesId = devices.devicesId
+            devLog.logTime = nowTimestamp  ## 日志记录时间
+            devLog.result = False
+            devLog.describe = "最后通讯时间已超过规定时间，请检查！"
+            DbData.insert_devices_log_time(devLog)
+            return
+    elif int(tarResult) > int(devices.checkTime):
         print("最后通讯时间已超过规定时间，请检查！")
         devLog = DevicesLog()
         devLog.executeLog = devices.alarm
@@ -100,19 +104,16 @@ def commonCheck(devices, targetSession):
     # 当前时间戳
     print("通讯设备：" + str(devices.devicesId))
     logging.info("当前时间：" + str(time.time()))
-    t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(nowTimestamp))
-    nowTime = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
-    print("nowTime：" + str(nowTime))
+
     req = requests.get(devices.devicesStatusLink, cookies={'SESSION': targetSession})
     resText = req.text
     logTime = devices.searchTimeField
     result = re.search(logTime + '\D:[0-9]*', resText)
     targetTimeStamp = result.group()
-    r = str(targetTimeStamp.split(":")[1])
-    sf = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(r)))
-    targetTime = datetime.strptime(sf, "%Y-%m-%d %H:%M:%S")
+    targetTime = str(targetTimeStamp.split(":")[1])
     print("targetTime" + str(targetTime))
-    result = (nowTime - targetTime).seconds
+    result = dataTimeDifference(nowTimestamp,targetTime)
+
     if result > int(devices.checkTime):
         devLog = DevicesLog()
         devLog.executeLog = devices.alarm
@@ -148,3 +149,11 @@ class DeviceTcpService:
                     config = DbData.search_tab_conf_by_devices(devices.configId)
                     targetSession = session[int(config.id)]
                     commonCheck(devices, targetSession)
+
+
+def dataTimeDifference(nowTime,endTime):
+    time1 = datetime.datetime.fromtimestamp(int(nowTime))
+    time2 = datetime.datetime.fromtimestamp(int(endTime))
+    time_difference = time1 - time2
+    print(time_difference.seconds)
+    return time_difference.seconds
