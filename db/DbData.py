@@ -80,16 +80,7 @@ def insert_devices_log_time(devicesLog:DevicesLog):
 
 
 if __name__ == '__main__':
-    resultStr = ""
-    # ele_list = search_tab_devices_log()
-    # for k in ele_list:
-    #     print(k.devicesId)
-    #     print(k.logTime)
-    #     targetTime = time.strftime("%Y-%m-%d",time.localtime(int(k.logTime)))
-    #     print(is_today(targetTime))
-    #     resultStr+="设备ID："+k.devicesId+" 执行时间："+time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(int(k.logTime))) +"执行命令："+k.executeLog + " 执行结果：" +k.result +" 执行结果描述："+k.describe
-    #     print(resultStr)
-
-    t = '{"code":0,"message":null,"data":{"list":[{"id":5352,"code":"AM20220013","name":"AM20220013","lastCommunicationTime":1668567535,"onlineStatus":true,"gatewayOnlineStatus":null,"alarmStatus":true,"faultStatus":true,"hiddenStatus":false,"closedStatus":false,"model":"SMR3002-V6-TCP","pid":null,"buildingId":239,"floorId":243,"isOutdoor":false,"lat":"0.479339599609375","lng":"0.447265625","detailedAddress":"我是详细委会","geographicId":330108002,"photoId":null,"signalValue":null,"power":null,"nodeAddress":null,"nodeId":null,"alarmAndFaultAndWorkOrderInfo":null}],"total":1},"success":true,"resultCode":"SUCCESS"}'
-    result = re.search('alarmStatus\D:true*', t)
-    print(result.group())
+    time1 = datetime.datetime.fromtimestamp(1669105781)
+    time2 = datetime.datetime.fromtimestamp(1669105053)
+    time_difference = time2 - time1
+    print(time_difference.seconds)

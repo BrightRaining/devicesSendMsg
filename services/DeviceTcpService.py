@@ -127,7 +127,7 @@ def commonCheck(devices, targetSession):
     devLog.executeLog = devices.alarm
     devLog.devicesId = devices.devicesId
     devLog.logTime = nowTimestamp  ## 日志记录时间
-    devLog.result = False
+    devLog.result = True
     devLog.describe = "通讯正常"
     DbData.insert_devices_log_time(devLog)
     print("无论成功于否均要记录入库")
@@ -157,3 +157,5 @@ def dataTimeDifference(nowTime,endTime):
     time_difference = time1 - time2
     print(time_difference.seconds)
     return time_difference.seconds
+
+
