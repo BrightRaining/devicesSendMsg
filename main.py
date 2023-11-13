@@ -57,11 +57,12 @@ def dingmessage():
         targetTime = time.strftime("%Y-%m-%d", time.localtime(int(k.logTime)))
         print()
         flag = is_today(targetTime)
+        resultStr = ""
         if flag:
             resultStr += "#### 设备ID：" + k.devicesId +"\n #### 所属平台："+platformType+ "\n #### 执行时间：" + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(
                 int(k.logTime))) + "\n #### 执行命令：" + k.executeLog + "\n #### 执行结果：" + k.result + "#### 执行结果描述：" + k.describe +"\n"+"-------------------\n"
         if resultStr is None or resultStr == "":
-            resultStr = "今日暂无数据产生"
+            resultStr = "\n #### 今日暂无数据产生"
 
     # 请求的URL，WebHook地址
     webhook = f"https://oapi.dingtalk.com/robot/send?access_token=cf529eebb45c09fe11cbc7fdbed4b773d9893d76a262df30096bf047f15d254b"
@@ -96,9 +97,20 @@ def dingmessage():
     print(info.text)
 
 
+
+
+
 if __name__ == "__main__":
-    DeviceTcpService().call_device_data()
-    dingmessage()
+    # DeviceTcpService().call_device_data()
+    # dingmessage()
+
+    s = [8,9.5,10.2,8.4,9.7,10.3,10.3,8.7,8.8,9.8,9.3,10.9,8,9.3,8]
+    num = 0
+    for i in s:
+        num += i
+    print(num / s.__len__())
+    print(s.__len__())
+
 
 # if __name__ == '__main__':
 #     DeviceTcpService().call_device_data()

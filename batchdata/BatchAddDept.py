@@ -1,4 +1,5 @@
 # -*- coding:UTF-8 -*-
+import asyncio
 import datetime
 import hashlib
 import json
@@ -7,6 +8,8 @@ import re
 import time
 
 import requests
+
+from batchdata import ActDevAlarm
 
 
 def setGlobaBatchlSession(login):
@@ -37,8 +40,8 @@ def loginSession(urlDomain, userName, pwd):
          'key': "96899b63-c59a-46c3-b4ed-aa6bbc751b05"}
     req = requests.post(url, data=t)
     session = req.cookies.get("SESSION")
-    setGlobaBatchlSession({"Cookie": "SESSION=" + session})
-    return {"Cookie": "SESSION=" + session}
+    setGlobaBatchlSession({"Cookie": "SESSION=" + str(session)})
+    return {"Cookie": "SESSION=" + str(session)}
 
 
 # 批量新增单位
@@ -88,7 +91,7 @@ class BatchAddDept:
                 buildIds = ''
                 # 组织单位关联楼栋数量默认50
                 totalList = buildList['data']['total']
-                for k in range((i - 1) * int(assBandNum), i * int(10)):
+                for k in range((i - 1) * int(assBandNum), i * int(assBandNum)):
                     buildArray = buildList['data']['list']
                     if (totalList - 1) > k:
                         buildId = buildArray[k]['id']
@@ -171,7 +174,45 @@ class BatchAddBuild:
 
 class BatchAddDevices:
 
-    def batchAddDev(self, urlDomain, userName, pwd, initDeviceCode, deviceNum, devicesModelName, modelType=3):
+    def batchSendDevAlarmAndFault(self, host, port, initDeviceCode, deviceNum):
+        # 切割初始设备id进行自增长
+        devPre = ''.join(re.findall(r'[A-Za-z]', initDeviceCode))
+        devEndP = initDeviceCode.split(devPre)  # 英文部分
+        devEnd = int(devEndP[1])  # 数字部分
+        tasks = []
+        for i in range(0, deviceNum):
+            # ActDevAlarm.sendSelfDeviceFault(host, port, str(devPre + str(int(devEnd) + int(i))))  # 故障
+            # ActDevAlarm.sendSelfDeviceAlarm(host, port, str(devPre + str(int(devEnd) + int(i))))  # 报警 此处产生1w条报警
+            # tasks = [ActDevAlarm.sendSelfDeviceAlarm(host, port, str(devPre + str(int(devEnd) + int(i))))]
+            tasks.append(asyncio.ensure_future(ActDevAlarm.sendSelfDeviceAlarm(host, port, str(devPre + str(int(devEnd) + int(i))))))
+            tasks.append(asyncio.ensure_future(ActDevAlarm.sendSelfDeviceFault(host, port, str(devPre + str(int(devEnd) + int(i))))))
+
+            print(str(devPre + str(int(devEnd) + int(i))))
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.wait(tasks))
+
+    def batchSendDevData(self, host, port, initDeviceCode, deviceNum):
+        """
+        发送对应设备的实时数据
+        :param host:
+        :param port:
+        :param initDeviceCode:
+        :param deviceNum:
+        :return:
+        """
+        # 切割初始设备id进行自增长
+        devPre = ''.join(re.findall(r'[A-Za-z]', initDeviceCode))
+        devEndP = initDeviceCode.split(devPre)  # 英文部分
+        devEnd = int(devEndP[1])  # 数字部分
+        for i in range(0, deviceNum):
+            # 实时数据
+            ActDevAlarm.sendDeviceRealData(host,port,str(devPre + str(int(devEnd) + int(i))),i)
+            print(str(devPre + str(int(devEnd) + int(i))))
+            time.sleep(2)
+
+
+
+    def batchAddDev(self, urlDomain, userName, pwd, initDeviceCode, deviceNum, devicesModelName, modelType=3,host='0.0.0.0',port='7893'):
 
         """
             批量添加设备
@@ -205,7 +246,7 @@ class BatchAddDevices:
 
         systemUrl = urlDomain + '/self_operator/device/system_type_v2/list?deviceType=' + str(modelType)
         req = requests.get(systemUrl, headers=loginBatchSession)
-        systemType = req.json()['data'][0]['id'] # 默认取第一个
+        systemType = req.json()['data'][0]['id']  # 默认取第一个
 
         # 如果没找到对应的设备型号，终止此次添加
         if tarModel is None:
@@ -213,7 +254,7 @@ class BatchAddDevices:
             return ''
 
         # 获取楼栋列表 默认前100个
-        deptSearchUrl = urlDomain + '/self_operator/building/page?departmentId=0&pageNumber=1&pageSize=100'
+        deptSearchUrl = urlDomain + '/self_operator/building/page?departmentId=0&pageNumber=1&pageSize=1000'
         req = requests.get(deptSearchUrl, headers=loginBatchSession)
         buildList = req.json()
         buildArray = buildList['data']['list']
@@ -221,13 +262,13 @@ class BatchAddDevices:
         # 切割初始设备id进行自增长
         devPre = ''.join(re.findall(r'[A-Za-z]', initDeviceCode))
         devEndP = initDeviceCode.split(devPre)  # 英文部分
-        devEnd = int(devEndP[1])   # 数字部分
+        devEnd = devEndP[1]  # 数字部分
 
         # 新增设备时的预备数据，只支持室内
         saveData = {
             'code': '',  # 设备编码
             'departmentId': 150,  # 绑定的部门id
-            'model': tarModel,  # 设备类型id,例如：3002对应的id是0
+            'model': tarModel,  # 设备类型id,例如：3002对应的id是0，不要随意变动，参考参数备注传值即可
             'communicationMode': 1,  # 通讯方式默认4G通用
             'name': '',  # 设备名称 和 设备编码保持一致
             'type': modelType,  # 设备类型，烟感/用电这种大类
@@ -245,7 +286,8 @@ class BatchAddDevices:
         for i in range(0, deviceNum):
             totalList = buildList['data']['total']
             # 每次都会随机在楼栋集合ID中取出一个
-            buildData = buildArray[random.randint(0, (totalList - 1))]
+            randomNum = random.randint(0, (totalList - 1))
+            buildData = buildArray[randomNum]
             buildId = buildData['id']
             departmentIds = buildData['departmentIds']
             departmentLen = tuple(departmentIds).__len__()
@@ -264,24 +306,40 @@ class BatchAddDevices:
             saveData['buildingId'] = buildId
             saveData['floorId'] = floorId
             saveData['departmentId'] = departmentIds[random.randint(0, int(departmentLen) - 1)]
+            req = requests.post(url, data=saveData, headers=loginBatchSession)
 
-            req = requests.post(url, data=saveData, headers=loginBatchSession, )
+            if req.ok:
+                # ActDevAlarm.sendDeviceRealData(str(host), str(port), str(devPre + str(int(devEnd) + int(i))),0)
+                ActDevAlarm.sendSelfDeviceAlarm(str(host), str(port), str(devPre + str(int(devEnd) + int(i))))  # 报警数据触发
+                ActDevAlarm.sendSelfDeviceFault(host, port, str(devPre + str(int(devEnd) + int(i)))) # 故障数据触发
+
             print("请求接口：" + req.url)
-            print("请求参数：" + req.request.body)
+            time.sleep(1)
+            timer = time.strftime("%Y-%m-%d %H:%M:%S")
+            print("请求参数：" + str(timer) + req.request.body)
             print(req.text)
 
 
 if __name__ == '__main__':
     # 请求域名后不要带 /
-    url = 'http://192.168.0.214:8884'
-    # url = 'https://cloud.sendiag.cn'
-    userName = 'fgdf23424'
+    # url = 'http://192.168.0.214:8884'
+    # # url = 'https://cloud.sendiag.cn'
+    # userName = 'ytest111'
+    # pwd = 'Tpson123456'
+
+    url = 'http://10.0.0.193:8884'
+    userName = 'tpson123'
     pwd = 'Tpson123456'
     # # 批量新增楼栋，此处不设置组织单位绑定
-    BatchAddBuild().batchAddBuid(url, userName, pwd, 3)
+    # BatchAddBuild().batchAddBuid(url, userName, pwd, 500)
+    # # #
+    # # # 批量新增组织单位和绑定建筑，如果是全新企业需要新增建筑才能设置True，新增数量如果需要100个，数值要填101
+    # BatchAddDept().addBatchDept(url, userName, pwd, 501, True, 1001, 20)
+    #
+    # # 批量新增设备 modelType[方法的最后一个参数]: 物联设备的类型： 1-烟感，3-用电，6-用水，21-微型断路器
+    # BatchAddDevices().batchAddDev(url, userName, pwd, 'EMR20231598', 2000, "EMR1003", 3,host='10.0.0.193',port='7893')
 
-    # 批量新增组织单位和绑定建筑，如果是全新企业需要新增建筑才能设置True，新增数量如果需要100个，数值要填101
-    BatchAddDept().addBatchDept(url, userName, pwd, 5, True, 100, 10)
-
-    # 批量新增设备 modelType[方法的最后一个参数]: 物联设备的类型： 1-烟感，3-用电，6-用水，21-微型断路器
-    BatchAddDevices().batchAddDev(url, userName, pwd, 'SCU33665', 4, "SCU300", 1)
+    # 对已有设备发送报警/故障设备
+    BatchAddDevices().batchSendDevAlarmAndFault('10.0.0.193', '7893', 'EMR20233095', 23)
+    # BatchAddDevices().batchSendDevData('192.168.0.214', '7893', 'AM20190078', 1)
+    # time.sleep(100000)
