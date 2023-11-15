@@ -41,17 +41,6 @@ def device_code_config(host, port, deviceConfig: DeviceConfig):
     codeDid = '4040' + tesc + str(f'{crc16:04X}') + '2323'
     # time.sleep(1)  # 暂停2s
     print(codeDid)
-
-    # hex_str = deviceId.encode('utf-8').hex().upper()
-    # print(hex_str)  # 输出 '48656c6c6f20576f726c64'
-    # tesc = '060001' + hex_str + str(code)
-    # # 测试数据 -crc校验 6BE1
-    # test_data = bytes.fromhex(tesc)
-    # # test_data = bytes("Hello, world!", encoding='utf-8')
-    # # 计算CRC-16校验码
-    # crc16 = calculate_crc16(test_data)
-    # codeDid = '4040' + tesc + str(f'{crc16:04X}') + '2323'
-    # print(codeDid)
     TcpUtils.tcp_con(host, port, codeDid)
 
 
@@ -68,6 +57,8 @@ class DeviceAlarmService:
             :return:
         """
         deviceList = DeviceDbData.search_tab_by_id_devices(deviceType)
+        if deviceList.__len__() <= 0 :
+            return {"msg": "未查到输入的设备型号","tips":"目前支持的设备型号：EMR3002,RTU500,SMR3100,EMR1002,SMR3250的部分报警和故障",}
         # 触发报警
         trggerNum = configData.trigger
         # 如果传入的随机数大于该类型设备的报警数则以报警数为准
@@ -86,7 +77,7 @@ class DeviceAlarmService:
                     logging.info(deviceList[randomNum].device_alarm)
                     # print(deviceList[randomNum].device_alarm)
                     deviceConfig = DeviceConfig(deviceId, deviceList[randomNum].device_prefix,
-                                                deviceList[randomNum].deviceList[randomNum].device_fault)
+                                                deviceList[randomNum].device_fault)
                     device_code_config(host, port, deviceConfig)
                     # print(deviceList[randomNum].device_fault)
                     logging.info(deviceList[randomNum].device_fault)
@@ -100,7 +91,7 @@ class DeviceAlarmService:
                 # 故障
                 if configData.triggerType == 2:
                     deviceConfig = DeviceConfig(deviceId, deviceList[randomNum].device_prefix,
-                                                deviceList[randomNum].deviceList[randomNum].device_fault)
+                                                deviceList[randomNum].device_fault)
                     device_code_config(host, port, deviceConfig)
                     logging.info(deviceList[randomNum].device_fault)
 
@@ -117,20 +108,14 @@ class DeviceAlarmService:
 
                 # 故障触发的同时还需恢复
                 if configData.triggerType == 5:
-                    device_code_config(host, port, deviceId,
-                                       )
-                    deviceConfig = DeviceConfig(deviceId, deviceList[randomNum].device_prefix,
-                                                deviceList[randomNum].deviceList[randomNum].device_fault)
+                    device_code_config(host, port, deviceId)
+                    deviceConfig = DeviceConfig(deviceId, deviceList[randomNum].device_prefix,deviceList[randomNum].device_fault)
                     device_code_config(host, port, deviceConfig)
-
                     logging.info(deviceList[randomNum].device_fault)
-
                     deviceConfig.code = deviceList[randomNum].device_device_fault_restore
                     device_code_config(host, port, deviceConfig, )
-
                     logging.info(deviceList[randomNum].device_fault)
                     # print(deviceList[randomNum].device_device_fault_restore)
-
             else:
                 # 不是随机触发，则按顺序触发即可
                 if configData.triggerType == 1:
@@ -142,10 +127,13 @@ class DeviceAlarmService:
                     deviceConfig = DeviceConfig(deviceId, deviceList[i].device_prefix,
                                                 deviceList[i].device_fault)
                     device_code_config(host, port, deviceConfig)
+        return {"code": "SUCCESS","tips":"发送成功,若无弹窗请检查参数和平台环境"}
 
 
 if __name__ == '__main__':
     configData = ConfigData()
     configData.trigger = 1
     configData.randomTrigger = 1
-    DeviceAlarmService().deviceAlarm('192.168.0.214', '7893', '005H20232023003', 'RTU500', configData)
+    # http://192.168.0.251:5000/device?host=192.168.0.214&port=7893&deviceId=SM20230303&deviceType=EMR1002
+    msg = DeviceAlarmService().deviceAlarm('192.168.0.214', '7893', 'SM20230303', 'EMR1002', configData)
+    print(msg)
