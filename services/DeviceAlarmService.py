@@ -65,7 +65,7 @@ def device_code_config(host, port, deviceConfig: DeviceConfig):
 # 替换流水号的方法 和1003类型相似得流水号在消息体中的设备类型直接引用
 def replaceDeviceSerialNumberSimilarEMR1003(repCode):
     # 替换随机四位流水号准备
-    num = random.randint(1000, 9999)
+    num = random.randint(4000, 9999)
     cp = str(hex(num))
     # 取出前4位
     # 再取前4位，成功剥离流水号
