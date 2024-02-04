@@ -1,7 +1,7 @@
 import re
 
 import requests
-from flask import request
+from flask import request, render_template, send_file
 from flask import Flask
 
 from bean.ConfigData import ConfigData
@@ -9,6 +9,7 @@ from services.DeviceAlarmService import DeviceAlarmService
 
 flask = Flask(__name__)
 flask.config["JSON_AS_ASCII"] = False
+
 
 # flask.json.ensure_ascii = False # Linux 解决中文乱码
 
@@ -28,7 +29,7 @@ def deviceTrgger():
     # 提取项目id
     trigger = request.args.get('trigger', default=1)  # 触发次数
     triggerType = request.args.get('triggerType', default=1)  # 触发类型
-    randomTrigger = request.args.get('randomTrigger', default=1)  # 触发次数
+    randomTrigger = request.args.get('randomTrigger', default=2)  # 触发次数
     host = request.args.get('host', default='47.110.73.94')  # 触发次数
     port = request.args.get('port', default='17893')  # 触发次数
     deviceId = request.args.get('deviceId', default='AA12345678')  # 设备id
@@ -38,8 +39,13 @@ def deviceTrgger():
     configData.trigger = trigger
     configData.triggerType = triggerType
     configData.randomTrigger = randomTrigger
-    msg = DeviceAlarmService().deviceAlarm(host,port,deviceId,deviceType,configData)
+    msg = DeviceAlarmService().deviceAlarm(host, port, deviceId, deviceType, configData)
     return msg
+
+
+@flask.route("/index")
+def index():
+    return send_file('report2/应用安装查询20240124-11_06_59report.html')
 
 
 flask.run(host='10.0.0.32', threaded=True)

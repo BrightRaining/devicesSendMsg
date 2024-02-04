@@ -5,7 +5,6 @@ import re
 import time
 
 from db import DbData
-from db.Elements import DevicesLog
 from services.LoginMethod import login_user, getGlobalLogin
 from tcpConnUtils.TcpUtils import tcp_utils
 import requests
@@ -134,6 +133,7 @@ def commonCheck(devices, targetSession):
 
 
 class DeviceTcpService:
+    
     def call_device_data(self):
         login_user()
         session = getGlobalLogin()

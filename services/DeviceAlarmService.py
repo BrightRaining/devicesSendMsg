@@ -5,7 +5,8 @@ import time
 
 from bean.ConfigData import ConfigData
 from bean.DeviceConfig import DeviceConfig
-from devicedb import DeviceDbData
+from db import DbData
+from devicedb import ImDeviceDbData
 from tcpConnUtils import TcpUtils
 
 
@@ -43,13 +44,23 @@ def device_code_config(host, port, deviceConfig: DeviceConfig):
     # 换成当前时间，不包含设备ID前得数据
     result1 = str(restCode) + rest[2:]
     tesc = None
+    # 替换流水号的方法 和3100类型流水号在 6位得可以直接在这里加上
+    if deviceConfig.deviceType == 'MCB2000':
+        print(str(str(deviceConfig.devicePrefix) + (hex_str) + result1))
+        scpN = str(deviceConfig.devicePrefix) + (hex_str)
+        tesc = replaceDeviceSerialNumberSimilarMCB2000(scpN.__len__(),str(deviceConfig.devicePrefix) + (hex_str) + result1)
     # 替换流水号的方法 和3100类型流水号在前6位得可以直接在这里加上
-    if deviceConfig.deviceType == 'SMR3100' or deviceConfig.deviceType == 'EMR3002':
+    elif deviceConfig.deviceType == 'SMR3100' or deviceConfig.deviceType == 'EMR3002' :
         tesc = replaceDeviceSerialNumberSimilarSMR3100(str(deviceConfig.devicePrefix) + (hex_str) + result1)
     # 替换流水号的方法 和1003类型相似得流水号在消息体中的设备类型直接在这里加上
     elif deviceConfig.deviceType == 'EMR1003' or deviceConfig.deviceType == 'RTU500' or deviceConfig.deviceType == 'EMR1002':
         result = replaceDeviceSerialNumberSimilarEMR1003(result1)
         tesc = str(deviceConfig.devicePrefix) + (hex_str) + result
+    elif deviceConfig.deviceType == 'SMR1210':
+        s = '02'
+        num = random.randint(5000, 9999)
+        cp = str(hex(num))
+        tesc = s + cp[2:] + hex_str + result1
     else:
         tesc = str(deviceConfig.devicePrefix) + (hex_str) + result1
     # 测试数据 -crc校验 6BE1
@@ -60,6 +71,17 @@ def device_code_config(host, port, deviceConfig: DeviceConfig):
     # time.sleep(1)  # 暂停2s
     print('发送的协议：' + str(codeDid))
     TcpUtils.tcp_con(host, port, codeDid)
+
+
+# 替换流水号的方法 和1003类型相似得流水号在消息体中的设备类型直接引用
+def replaceDeviceSerialNumberSimilarMCB2000(stNum,repCode):
+    # 替换随机四位流水号准备
+    num = random.randint(4000, 9999)
+    cp = str(hex(num))
+    # 取出前4位
+    # 再取前4位，成功剥离流水号
+    result = repCode[0:int(stNum+10)] + cp[2:] + repCode[int(stNum+14):repCode.__len__()]
+    return result
 
 
 # 替换流水号的方法 和1003类型相似得流水号在消息体中的设备类型直接引用
@@ -97,7 +119,7 @@ class DeviceAlarmService:
             :param configData: 如何触发报警的配置类
             :return:
         """
-        deviceList = DeviceDbData.search_tab_by_id_devices(deviceType)
+        deviceList = DbData.search_tab_by_type_devices(deviceType)
         if deviceList.__len__() <= 0:
             return {"msg": "未查到输入的设备型号", "tips": "目前支持的设备型号：EMR3002,RTU500,SMR3100,EMR1002,SMR3250的部分报警和故障", }
         # 触发报警
@@ -126,7 +148,7 @@ class DeviceAlarmService:
                     # print(deviceList[randomNum].device_fault)
                 # 报警
                 if configData.triggerType == 1:
-                    if deviceList[randomNum].device_fault is not None and str(deviceList[randomNum].device_fault) != '':
+                    if deviceList[randomNum].device_alarm is not None and str(deviceList[randomNum].device_alarm) != '':
                         deviceConfig = DeviceConfig(deviceId, deviceList[randomNum].device_prefix,
                                                     deviceList[randomNum].device_alarm,
                                                     deviceList[randomNum].device_type)
@@ -193,8 +215,9 @@ if __name__ == '__main__':
     configData.randomTrigger = 2
     configData.triggerType = 1
     # configData.triggerType = 3 # 都触发
+
     # http://192.168.0.251:5000/device?host=192.168.0.214&port=7893&deviceId=SM20230303&deviceType=EMR1002
-    msg = DeviceAlarmService().deviceAlarm('192.168.0.214', '7893', 'EMR20231130', 'EMR1003', configData)
+    msg = DeviceAlarmService().deviceAlarm('47.110.73.94', '17893', 'DJ20230005', 'SMR1210', configData)
     print(msg)
 
     # # 切割初始设备id进行自增长

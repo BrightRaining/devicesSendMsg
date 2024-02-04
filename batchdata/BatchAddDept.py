@@ -40,8 +40,10 @@ def loginSession(urlDomain, userName, pwd):
          'key': "96899b63-c59a-46c3-b4ed-aa6bbc751b05"}
     req = requests.post(url, data=t)
     session = req.cookies.get("SESSION")
-    setGlobaBatchlSession({"Cookie": "SESSION=" + str(session)})
-    return {"Cookie": "SESSION=" + str(session)}
+    ## Authorization
+    authorization = req.json()['data']['jwtToken']
+    setGlobaBatchlSession({"Cookie": "SESSION=" + str(session),"Authorization":authorization})
+    return {"Cookie": "SESSION=" + str(session),"Authorization":authorization}
 
 
 # 批量新增单位
@@ -308,38 +310,38 @@ class BatchAddDevices:
             saveData['departmentId'] = departmentIds[random.randint(0, int(departmentLen) - 1)]
             req = requests.post(url, data=saveData, headers=loginBatchSession)
 
-            if req.ok:
-                # ActDevAlarm.sendDeviceRealData(str(host), str(port), str(devPre + str(int(devEnd) + int(i))),0)
-                ActDevAlarm.sendSelfDeviceAlarm(str(host), str(port), str(devPre + str(int(devEnd) + int(i))))  # 报警数据触发
-                ActDevAlarm.sendSelfDeviceFault(host, port, str(devPre + str(int(devEnd) + int(i)))) # 故障数据触发
+            # if req.ok:
+            #     # ActDevAlarm.sendDeviceRealData(str(host), str(port), str(devPre + str(int(devEnd) + int(i))),0)
+            #     ActDevAlarm.sendSelfDeviceAlarm(str(host), str(port), str(devPre + str(int(devEnd) + int(i))))  # 报警数据触发
+            #     ActDevAlarm.sendSelfDeviceFault(host, port, str(devPre + str(int(devEnd) + int(i)))) # 故障数据触发
 
             print("请求接口：" + req.url)
-            time.sleep(1)
-            timer = time.strftime("%Y-%m-%d %H:%M:%S")
-            print("请求参数：" + str(timer) + req.request.body)
+            # time.sleep(1)
+            # timer = time.strftime("%Y-%m-%d %H:%M:%S")
+            # print("请求参数：" + str(timer) + req.request.body)
             print(req.text)
 
 
 if __name__ == '__main__':
     # 请求域名后不要带 /
     # url = 'http://192.168.0.214:8884'
-    # # url = 'https://cloud.sendiag.cn'
-    # userName = 'ytest111'
+    # # # url = 'https://cloud.sendiag.cn'
+    # userName = '192.168.0.214'
     # pwd = 'Tpson123456'
 
-    url = 'http://10.0.0.193:8884'
-    userName = 'tpson123'
+    url = 'http://192.168.0.188:8884'
+    userName = 'tpson003'
     pwd = 'Tpson123456'
-    # # 批量新增楼栋，此处不设置组织单位绑定
-    # BatchAddBuild().batchAddBuid(url, userName, pwd, 500)
-    # # #
-    # # # 批量新增组织单位和绑定建筑，如果是全新企业需要新增建筑才能设置True，新增数量如果需要100个，数值要填101
-    # BatchAddDept().addBatchDept(url, userName, pwd, 501, True, 1001, 20)
-    #
-    # # 批量新增设备 modelType[方法的最后一个参数]: 物联设备的类型： 1-烟感，3-用电，6-用水，21-微型断路器
-    # BatchAddDevices().batchAddDev(url, userName, pwd, 'EMR20231598', 2000, "EMR1003", 3,host='10.0.0.193',port='7893')
+    # 批量新增楼栋，此处不设置组织单位绑定
+    # BatchAddBuild().batchAddBuid(url, userName, pwd, 20)
+    # #
+    # # 批量新增组织单位和绑定建筑，如果是全新企业需要新增建筑才能设置True，新增数量如果需要100个，数值要填101
+    # BatchAddDept().addBatchDept(url, userName, pwd, 10, True, 1001, 20)
+
+    # 批量新增设备 modelType[方法的最后一个参数]: 物联设备的类型： 1-烟感，3-用电，6-用水，21-微型断路器
+    BatchAddDevices().batchAddDev(url, userName, pwd, 'DJ20040088', 200, "SMR1210", 6,host='192.168.0.188',port='7893')
 
     # 对已有设备发送报警/故障设备
-    BatchAddDevices().batchSendDevAlarmAndFault('10.0.0.193', '7893', 'EMR20233095', 23)
+    # BatchAddDevices().batchSendDevAlarmAndFault('192.168.0.214', '7893', 'IA21090097', 23)
     # BatchAddDevices().batchSendDevData('192.168.0.214', '7893', 'AM20190078', 1)
     # time.sleep(100000)
