@@ -7,7 +7,7 @@ import re
 import time
 from sqlalchemy.orm import sessionmaker
 
-from db.Elements import Config, Device
+from db.Elements import Config, Device, Device_info
 from db.base import engine
 
 Session = sessionmaker(bind=engine)
