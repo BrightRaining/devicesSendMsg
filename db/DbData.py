@@ -17,7 +17,7 @@ session = Session()
 # 配置查询
 def search_tab_config() -> Config:
     """
-    读取配置表中的内容，返回所有数据
+    读取配置表中的内容，返回所   有数据
     :rtype: object
     :return:
     """
