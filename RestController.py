@@ -50,7 +50,7 @@ def deviceTrgger():
 
 @flask.route("/reportname", methods=['GET'])
 def index():
-    report_name = request.args.get('name', default='2024-02-26-14-30-04-report.html')  # 触发次数
+    report_name = request.args.get('name', default='2024-02-27-14-47-51-report.html')  # 触发次数
     project_path = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))
     file_abs = project_path + '\\report' + '\\' + report_name
     if os_file_utils.is_file_exit(file_abs):
