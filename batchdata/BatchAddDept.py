@@ -324,11 +324,6 @@ class BatchAddDevices:
 
 if __name__ == '__main__':
     # 请求域名后不要带 /
-    # url = 'http://192.168.0.214:8884'
-    # # # url = 'https://cloud.sendiag.cn'
-    # userName = '192.168.0.214'
-    # pwd = 'Tpson123456'
-
     url = 'http://192.168.0.188:8884'
     userName = 'tpson003'
     pwd = 'Tpson123456'

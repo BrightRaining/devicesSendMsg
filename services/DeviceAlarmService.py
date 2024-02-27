@@ -6,7 +6,6 @@ import time
 from bean.ConfigData import ConfigData
 from bean.DeviceConfig import DeviceConfig
 from db import DbData
-from devicedb import ImDeviceDbData
 from tcpConnUtils import TcpUtils
 
 
@@ -217,7 +216,7 @@ if __name__ == '__main__':
     # configData.triggerType = 3 # 都触发
 
     # http://192.168.0.251:5000/device?host=192.168.0.214&port=7893&deviceId=SM20230303&deviceType=EMR1002
-    msg = DeviceAlarmService().deviceAlarm('47.110.73.94', '17893', 'DJ20230005', 'SMR1210', configData)
+    msg = DeviceAlarmService().deviceAlarm('47.110.73.94', '17893', 'SM20240126', 'EMR1002', configData)
     print(msg)
 
     # # 切割初始设备id进行自增长

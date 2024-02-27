@@ -1,3 +1,6 @@
+import inspect
+import json
+import os
 import re
 
 import requests
@@ -6,6 +9,8 @@ from flask import Flask
 
 from bean.ConfigData import ConfigData
 from services.DeviceAlarmService import DeviceAlarmService
+from utils import os_file_utils
+import socket
 
 flask = Flask(__name__)
 flask.config["JSON_AS_ASCII"] = False
@@ -43,10 +48,41 @@ def deviceTrgger():
     return msg
 
 
-@flask.route("/index")
+@flask.route("/reportname", methods=['GET'])
 def index():
-    return send_file('report2/应用安装查询20240124-11_06_59report.html')
+    report_name = request.args.get('name', default='2024-02-26-14-30-04-report.html')  # 触发次数
+    project_path = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))
+    file_abs = project_path + '\\report' + '\\' + report_name
+    if os_file_utils.is_file_exit(file_abs):
+        return send_file(file_abs)
+    else:
+        return {'msg': '您查找的文件已不存在'}
 
 
-flask.run(host='10.0.0.32', threaded=True)
+@flask.route("/reportlist", methods=['GET'])
+def report_list():
+    ip_config = 'http://10.0.0.32:5000/reportname?name='
+    resultStr = ""
+    # 当前文件所在的项目路径
+    project_path = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))
+    file_list = os.listdir(project_path + '\\' + str('report'))
+    # print(file_list)
+    file_name_list = []
+    for file_name in file_list:
+        file_name_list.append(str(ip_config + file_name))
+    return json.dumps({'msg': file_name_list})
+
+
+@flask.route("/", methods=['GET'])
+def routes():
+    ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
+    msg = {
+        'msg': "可使用的查询报告列表接口",
+        'inf_adderss': 'http://'+ip+':5000/reportlist'
+    }
+    return msg
+
+
+ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
+flask.run(host=ip, threaded=True)
 # flask.run(host='192.168.0.251')

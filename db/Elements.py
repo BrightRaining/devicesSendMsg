@@ -25,7 +25,7 @@ class Device_info(Base):
 class Device(Base):
     __tablename__ = "device"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    deviceId = Column(String(32), unique=True)
+    device_id = Column(String(32), unique=True)
     host = Column(String(32), unique=True)
     port = Column(String(32), unique=True)
     p_id = Column(String(11), nullable=True)
@@ -41,6 +41,8 @@ class Config(Base):
     pwd = Column(String(32), nullable=False)
     platformPrefix = Column(String(32), nullable=False)
     status = Column(String(32), nullable=False)
+    device_type = Column(String(11), nullable=True)
+    page_size = Column(String(11), nullable=True)
 
 
 

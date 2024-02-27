@@ -7,7 +7,7 @@ import re
 import time
 from sqlalchemy.orm import sessionmaker
 
-from db.Elements import Config, Device
+from db.Elements import Config, Device, Device_info
 from db.base import engine
 
 Session = sessionmaker(bind=engine)
@@ -57,7 +57,7 @@ def search_tab_by_type_devices(deviceType: str) -> list:
     """
     :rtype: Elements
     """
-    session.commit() # 提交一次，防止查询缓存
+    # session.commit() # 提交一次，防止查询缓存
     logging.info("接受到查询请求,请求参数为: " + str(deviceType))
     # 返回列表，一个设备类型有多个报警/故障
     result = session.query(Device_info).filter_by(device_type=deviceType).all()
